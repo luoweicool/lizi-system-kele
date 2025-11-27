@@ -114,7 +114,38 @@
         .slider-group { display: flex; align-items: center; gap: 10px; min-width: 120px; }
         .slider-label { font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; }
         .label-blue { color: #00eaff; }
-        input[type="range"] { flex: 1; -webkit-appearance: none; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; width: 70px; cursor: pointer; }
+        
+        /* --- 滑块样式美化 --- */
+        input[type="range"] { 
+            flex: 1; 
+            -webkit-appearance: none; 
+            height: 6px; /* 加粗轨道 */
+            background: rgba(255,255,255,0.1); 
+            border-radius: 3px; 
+            width: 70px; 
+            cursor: pointer; 
+            outline: none;
+        }
+        /* 滑块头样式 Webkit */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; /* 加大滑块 */
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 8px rgba(255,255,255,0.6); /* 发光效果 */
+            margin-top: -6px; /* 垂直居中 */
+            border: 2px solid rgba(0,0,0,0.1);
+        }
+        /* 滑块头样式 Moz */
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            border: none;
+            box-shadow: 0 0 8px rgba(255,255,255,0.6);
+        }
         
         /* --- 颜色触发器 --- */
         .color-dock-section { display: flex; align-items: center; gap: 16px; background: rgba(255, 255, 255, 0.03); padding: 6px 12px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.05); }
@@ -184,11 +215,12 @@
             background: transparent !important; border: none !important; padding: 0 !important;
             display: flex; flex-direction: column !important;
             gap: 0;
-            width: auto !important; height: auto !important;
+            width: 44px !important; /* 强制宽度与全屏按钮一致，保证对齐 */
+            height: auto !important;
             align-items: center; /* 确保子元素（圆形图标）在列中居中 */
         }
         /* 强制覆盖内部样式 */
-        .mobile-fab-group .trigger-group { flex-direction: column !important; gap: 15px !important; }
+        .mobile-fab-group .trigger-group { flex-direction: column !important; gap: 15px !important; align-items: center !important; }
         .mobile-fab-group .trigger-label { text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-weight: 800; color: #ddd; font-size: 10px; }
 
         /* 手机端布局调整 */
@@ -394,11 +426,9 @@
                 
                 // --- 手机版文案调整 ---
                 if(btnMobius) btnMobius.innerText = "环";
-                // 仅在摄像头未开启或初始化时设置名字，避免覆盖“运行中”的状态（如果需要显示状态）
-                // 但用户要求改名为“交互”，这里强制覆盖为“交互”更符合需求
+                // 强制交互按钮文案固定
                 if(btnWebcam) {
-                     // 如果正在运行，可以显示"📷 交互中"，否则显示"📷 交互"
-                     btnWebcam.innerText = window.isWebcamOn ? "📷 交互中" : "📷 交互";
+                     btnWebcam.innerText = "📷 交互";
                 }
 
             } else {
@@ -645,8 +675,8 @@
 
             btn.classList.add('active');
             if(!isMobile) btn.innerText = "⏳ 请求中...";
-            // 手机端点击后也显示请求中...
-            if(isMobile) btn.innerText = "⏳ ...";
+            // 手机端始终保持固定文案
+            if(isMobile) btn.innerText = "📷 交互";
             
             updateStatus("正在请求摄像头...", "#00eaff");
 
@@ -680,7 +710,7 @@
                     window.isWebcamOn = true;
                     if(controls) controls.autoRotate = false;
                     if(!isMobile) btn.innerText = "📷 运行中";
-                    if(isMobile) btn.innerText = "📷 交互中";
+                    if(isMobile) btn.innerText = "📷 交互"; // 保持文案不变
                     
                     initMediaPipe();
                     updateStatus("摄像头已启动", "#00ffaa");
