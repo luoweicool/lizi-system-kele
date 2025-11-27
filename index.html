@@ -208,13 +208,14 @@
 
         .mobile-fab-group {
             position: fixed !important;
-            /* 大幅下移，避免拥挤 */
-            top: 130px; 
+            /* 15px(顶部间距) + 44px(全屏按钮高) + 15px(中间间隔) = 74px */
+            /* 这样保证垂直排列的等距：全屏按钮 -> 15px -> 核心图标 -> 15px -> 边缘图标 */
+            top: 74px; 
             right: 15px; 
             z-index: 300 !important;
             background: transparent !important; border: none !important; padding: 0 !important;
             display: flex; flex-direction: column !important;
-            gap: 25px !important; 
+            gap: 15px !important; 
             width: 44px !important; 
             height: auto !important;
             align-items: center;
