@@ -192,6 +192,7 @@
         #restore-ui-btn { display: none !important; }
 
         /* --- 手机端专属样式 --- */
+        /* 全屏按钮悬浮右上角 */
         .mobile-fab-btn {
             position: fixed !important;
             top: 15px; right: 15px;
@@ -248,26 +249,44 @@
                 border: 1px solid rgba(255, 50, 50, 0.5);
             }
             
-            /* 手机端：颜色图标在 dock 内部 */
-            .color-dock-section {
+            /* 手机端底部一行工具栏容器 */
+            #mobile-tools-row {
+                display: flex;
+                align-items: center;
+                justify-content: flex-start; /* 靠左对齐 */
                 width: 100%;
-                justify-content: space-around; /* 均匀分布 */
-                background: rgba(255,255,255,0.05); /* 轻微背景区分 */
-                padding: 8px 0;
-                border-radius: 12px;
+                gap: 15px; /* 元素间距 */
+                margin-top: 5px;
             }
-            .trigger-group { gap: 40px; } /* 增加间距 */
+
+            /* 手机端颜色区域：无框，横向 */
+            .color-dock-section {
+                padding: 0;
+                margin: 0;
+                background: none !important; /* 移除外框背景 */
+                border: none !important; /* 移除边框 */
+                width: auto;
+            }
+            .trigger-group {
+                flex-direction: row !important; /* 强制横向 */
+                gap: 15px !important;
+            }
             
-            /* 手机端颜色面板位置 */
+            /* 颜色面板位置 */
             #custom-color-picker { 
                 position: absolute;
-                bottom: 100%; right: 0; left: 0; 
+                bottom: 100%; left: 0; right: 0; 
                 width: auto; margin-bottom: 10px;
             }
 
+            /* 颜色触发器尺寸 (保持与全屏按钮一致) */
             .color-trigger {
-                width: 36px; height: 36px; /* 手机端稍微大一点点好点 */
+                width: 44px !important;
+                height: 44px !important;
+                box-sizing: border-box !important;
+                border: 2px solid rgba(255,255,255,0.1) !important;
             }
+            .trigger-item { margin: 0; }
         }
     </style>
 </head>
@@ -313,6 +332,8 @@
                 <button id="btn-webcam" class="shape-btn" onclick="attemptWebcam()">📷 手势控制</button>
                 <button id="btn-immersive" class="shape-btn" onclick="toggleImmersive()">⛶ 全屏</button>
                 <button id="btn-custom" class="shape-btn" style="display:none;">自定义</button>
+                <!-- 新增主页按钮 (默认放在按钮组里，手机端会被移走) -->
+                <button id="btn-homepage" class="shape-btn" onclick="window.open('https://xhslink.com/m/5l0ABQw8u6b', '_blank')">🏠 主页</button>
             </div>
             <div class="divider"></div>
             <div class="sliders-wrapper">
@@ -405,31 +426,61 @@
         function checkMobileUI() {
             const isMobile = window.innerWidth <= 850;
             const btnImm = document.getElementById('btn-immersive');
+            const colorDock = document.getElementById('color-dock');
             const mainBtns = document.getElementById('main-btns');
+            const mainDock = document.getElementById('main-dock');
             
             // 获取需要改名的按钮
             const btnTesseract = document.getElementById('btn-tesseract');
             const btnMobius = document.getElementById('btn-mobius');
             const btnWebcam = document.getElementById('btn-webcam');
+            const btnHomepage = document.getElementById('btn-homepage');
+
+            // 检查或创建手机端底部专用行容器
+            let mobileRow = document.getElementById('mobile-tools-row');
+            if (isMobile && !mobileRow) {
+                mobileRow = document.createElement('div');
+                mobileRow.id = 'mobile-tools-row';
+                mainDock.appendChild(mobileRow);
+            }
 
             if (isMobile) {
-                // 手机模式：只有全屏按钮移动到右上角
+                // --- 手机版布局重组 ---
+                
+                // 1. 全屏按钮：移到右上角悬浮 (Mobile FAB)
                 if (btnImm.parentElement !== document.body) {
                     document.body.appendChild(btnImm);
                     btnImm.classList.add('mobile-fab-btn');
                 }
                 
+                // 2. 颜色、交互、主页：移入底部新行
+                if (colorDock.parentElement !== mobileRow) mobileRow.appendChild(colorDock);
+                if (btnWebcam.parentElement !== mobileRow) mobileRow.appendChild(btnWebcam);
+                if (btnHomepage.parentElement !== mobileRow) mobileRow.appendChild(btnHomepage);
+
                 // --- 手机版文案调整 ---
                 if(btnTesseract) btnTesseract.innerText = "四维";
                 if(btnMobius) btnMobius.innerText = "环";
-                // 强制交互按钮文案固定
-                if(btnWebcam) {
-                     btnWebcam.innerText = "📷 交互";
-                }
+                if(btnWebcam) btnWebcam.innerText = "📷 交互"; 
 
             } else {
-                // PC模式：全屏按钮放回
+                // --- 电脑版布局还原 ---
+                
+                // 移除手机端专用行 (如果存在，先将元素移回原位再删除)
+                if (mobileRow) {
+                    // 移回主按钮组
+                    mainBtns.insertBefore(btnWebcam, btnImm); // 插在全屏按钮前
+                    // 主页按钮放回按钮组最后
+                    mainBtns.appendChild(btnHomepage);
+                    // 颜色区域放回主Dock最后
+                    mainDock.appendChild(colorDock);
+                    
+                    mobileRow.remove();
+                }
+
+                // 全屏按钮放回
                 if (btnImm.parentElement === document.body) {
+                    // 插在自定义按钮前 (即 webca 之后)
                     mainBtns.insertBefore(btnImm, document.getElementById('btn-custom')); 
                     btnImm.classList.remove('mobile-fab-btn');
                     btnImm.innerText = "⛶ 全屏";
@@ -660,10 +711,11 @@
                     window.videoStream = null; 
                 }
                 
-                // 关键：清空 video 源，释放占用的硬件资源
+                // 关键：彻底重置 video 元素，解决移动端卡住问题
                 const video = document.getElementById('webcam-video');
                 video.pause();
                 video.srcObject = null;
+                video.load(); // 强制重载，清空缓存
 
                 handOpenness = 0; handX = 0;
                 if(material) material.uniforms.uSpread.value = 0;
