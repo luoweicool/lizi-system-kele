@@ -274,16 +274,17 @@
                 position: relative; /* 确保子绝对定位参考它 */
             }
             
-            /* 修复：颜色面板在手机端样式 */
+            /* 修复：颜色面板在手机端强制屏幕居中 fixed 定位 */
             #custom-color-picker { 
-                position: absolute; /* 相对于 trigger-group */
-                bottom: 100%; /* 面板在按钮上方 */
-                left: 50% !important; /* 强制水平居中 */
-                right: auto !important; /* 取消右侧拉伸 */
-                width: 260px !important; /* 强制固定宽度，防止被父级窄宽度压缩 */
-                margin-bottom: 15px;
-                transform: translateX(-50%); /* 真正的水平居中 */
+                position: fixed !important; /* 强制基于窗口定位，防止跑偏 */
+                bottom: 140px !important; /* 距离底部的高度，避开UI栏 */
+                left: 50% !important; /* 水平居中起点 */
+                right: auto !important; 
+                top: auto !important;
+                width: 260px !important; /* 强制固定宽度 */
+                transform: translateX(-50%) !important; /* 真正的水平居中修正 */
                 z-index: 500;
+                margin: 0;
             }
 
             /* 颜色触发器尺寸 (保持与全屏按钮一致) */
@@ -402,6 +403,9 @@
                     </div>
                 </div>
             </div>
+            <!-- 电脑版主页按钮 (手机版会移动位置) -->
+            <div class="divider" id="pc-divider-2"></div>
+            <!-- 主页按钮在JS中会被移动 -->
         </div>
     </div>
 
@@ -422,6 +426,7 @@
         
         window.isWebcamOn = false;
         window.isTouchMode = false;
+        window.isWebcamLoading = false; // 摄像头加载锁
         window.videoStream = null;
         window.hands = null;
         let handOpenness = 0, handX = 0, smoothedOpenness = 0;
@@ -436,12 +441,14 @@
             const colorDock = document.getElementById('color-dock');
             const mainBtns = document.getElementById('main-btns');
             const mainDock = document.getElementById('main-dock');
+            const pcDivider = document.getElementById('pc-divider-2');
             
             // 获取需要改名的按钮
             const btnTesseract = document.getElementById('btn-tesseract');
             const btnMobius = document.getElementById('btn-mobius');
             const btnWebcam = document.getElementById('btn-webcam');
             const btnHomepage = document.getElementById('btn-homepage');
+            const btnCustom = document.getElementById('btn-custom'); // 获取隐藏的自定义按钮作为锚点
 
             // 检查或创建手机端底部专用行容器
             let mobileRow = document.getElementById('mobile-tools-row');
@@ -453,7 +460,8 @@
 
             if (isMobile) {
                 // --- 手机版布局重组 ---
-                
+                if (pcDivider) pcDivider.style.display = 'none';
+
                 // 1. 全屏按钮：移到右上角悬浮 (Mobile FAB)
                 if (btnImm.parentElement !== document.body) {
                     document.body.appendChild(btnImm);
@@ -472,23 +480,25 @@
 
             } else {
                 // --- 电脑版布局还原 ---
-                
+                if (pcDivider) pcDivider.style.display = 'block';
+
                 // 移除手机端专用行 (如果存在，先将元素移回原位再删除)
                 if (mobileRow) {
-                    // 移回主按钮组
-                    mainBtns.insertBefore(btnWebcam, btnImm); // 插在全屏按钮前
-                    // 主页按钮放回按钮组最后
-                    mainBtns.appendChild(btnHomepage);
-                    // 颜色区域放回主Dock最后
-                    mainDock.appendChild(colorDock);
+                    // 移回主按钮组：交互按钮插在自定义按钮之前
+                    mainBtns.insertBefore(btnWebcam, btnCustom); 
+                    
+                    // 主页按钮放回Dock最后
+                    mainDock.appendChild(btnHomepage);
+                    
+                    // 颜色区域放回主Dock (插在pcDivider之前)
+                    mainDock.insertBefore(colorDock, pcDivider);
                     
                     mobileRow.remove();
                 }
 
-                // 全屏按钮放回
+                // 全屏按钮放回 (插在自定义按钮之前)
                 if (btnImm.parentElement === document.body) {
-                    // 插在自定义按钮前 (即 webca 之后)
-                    mainBtns.insertBefore(btnImm, document.getElementById('btn-custom')); 
+                    mainBtns.insertBefore(btnImm, btnCustom); 
                     btnImm.classList.remove('mobile-fab-btn');
                     btnImm.innerText = "⛶ 全屏";
                 }
@@ -497,6 +507,10 @@
                 if(btnTesseract) btnTesseract.innerText = "四维投影";
                 if(btnMobius) btnMobius.innerText = "莫比乌斯";
                 if(btnWebcam) btnWebcam.innerText = window.isWebcamOn ? "📷 运行中" : "📷 手势控制";
+                // 确保主页按钮在PC端也存在于Dock末尾
+                if(btnHomepage.parentElement !== mainDock) {
+                    mainDock.appendChild(btnHomepage);
+                }
             }
         }
 
@@ -705,8 +719,11 @@
             const isMobile = window.innerWidth <= 850;
             if (!window.isHandsLoaded) { alert("AI 组件尚未加载完成，请稍等几秒。"); return; }
             
+            if (window.isWebcamLoading) return; // 防止重复点击
+
             // 关闭逻辑：彻底清除流，防止卡死
             if (window.isWebcamOn || window.isTouchMode) {
+                window.isWebcamLoading = true;
                 window.isWebcamOn = false; 
                 window.isTouchMode = false;
                 btn.classList.remove('active');
@@ -718,27 +735,33 @@
                     window.videoStream = null; 
                 }
                 
-                // 关键：彻底重置 video 元素，解决移动端卡住问题
+                // 关键：彻底重置 video 元素
                 const video = document.getElementById('webcam-video');
                 video.pause();
                 video.srcObject = null;
-                video.load(); // 强制重载，清空缓存
+                // 注意：移除 video.load() 也是一个关键点，某些移动浏览器对此敏感
+                // 但为了确保清空，我们只置空 srcObject 即可
 
                 handOpenness = 0; handX = 0;
                 if(material) material.uniforms.uSpread.value = 0;
                 if(controls) controls.autoRotate = true;
+                
+                // 恢复文案
                 if (!isMobile) btn.innerText = "📷 手势控制";
                 if (isMobile) btn.innerText = "📷 交互";
                 
                 btn.style.boxShadow = ""; btn.style.color = ""; btn.style.borderColor = "";
                 updateStatus("摄像头已关闭", "#fff");
+                
+                window.isWebcamLoading = false;
                 return;
             }
 
             // 开启逻辑
+            window.isWebcamLoading = true;
             btn.classList.add('active');
             if(!isMobile) btn.innerText = "⏳ 请求中...";
-            if(isMobile) btn.innerText = "📷 交互"; // 保持文字不变
+            // 手机端保持交互文案不变
             
             updateStatus("正在请求摄像头...", "#00eaff");
 
@@ -764,23 +787,22 @@
                     console.warn("Auto-play failed", e);
                 }
 
-                video.onloadedmetadata = () => {
-                    window.isWebcamOn = true; // 确保在元数据加载后才标记开启
-                    if(controls) controls.autoRotate = false;
-                    if(!isMobile) btn.innerText = "📷 运行中";
-                    if(isMobile) btn.innerText = "📷 交互";
-                    
-                    initMediaPipe();
-                    updateStatus("摄像头已启动", "#00ffaa");
-                };
+                // 不依赖 onloadedmetadata，直接标记完成
+                window.isWebcamOn = true; 
+                window.isWebcamLoading = false;
+                if(controls) controls.autoRotate = false;
+                if(!isMobile) btn.innerText = "📷 运行中";
+                
+                initMediaPipe();
+                updateStatus("摄像头已启动", "#00ffaa");
 
             } catch (err) {
                 console.error("Webcam Error:", err);
+                window.isWebcamLoading = false;
                 if (confirm("摄像头启动失败(可能是权限或设备不支持)，是否切换到触屏手势模式？")) enableTouchSimMode();
                 else { 
                     btn.classList.remove('active'); 
                     if(!isMobile) btn.innerText = "📷 手势控制"; 
-                    if(isMobile) btn.innerText = "📷 交互";
                     updateStatus("启动失败", "#ff5555"); 
                 }
             }
@@ -793,7 +815,7 @@
             btn.style.boxShadow = "0 0 15px #00ffaa"; btn.style.color = "#00ffaa"; btn.style.borderColor = "#00ffaa";
             const isMobile = window.innerWidth <= 850;
             if (!isMobile) btn.innerText = "👆 触屏控制";
-            if (isMobile) btn.innerText = "👆 触屏";
+            // 手机端文案保持不变
             
             if(controls) controls.autoRotate = false;
             updateStatus("模式：触屏模拟", "#00ffaa");
