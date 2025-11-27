@@ -52,8 +52,8 @@
             pointer-events: auto; touch-action: none; cursor: move; 
             box-shadow: 0 0 20px rgba(0,0,0,0.8);
         }
-        #webcam-video { position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
-        #output-canvas { width: 100%; height: 100%; transform: scaleX(-1); object-fit: cover; pointer-events: none; }
+        #webcam-video { position: absolute; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scaleX(-1); }
+        #output-canvas { width: 100%; height: 100%; transform: scaleX(-1); object-fit: cover; pointer-events: none; position: absolute; top: 0; left: 0; }
         
         #touch-indicator { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; border: 2px solid rgba(0, 255, 170, 0.5); border-radius: 50%; pointer-events: none; display: none; z-index: 20; box-shadow: 0 0 20px rgba(0,255,170,0.3); }
 
@@ -69,31 +69,29 @@
         .modal-btn { padding: 10px 25px; border-radius: 30px; border: 1px solid #444; background: #222; color: #fff; font-size: 14px; cursor: pointer; }
         .btn-confirm { background: #00ffaa; color: #000; border: none; }
 
-        /* --- UI 布局 (核心修改) --- */
-        /* 修改定位方式：使用flex居中代替transform，解决子元素fixed定位失效的问题 */
+        /* --- UI 布局 --- */
         #ui {
             position: fixed; 
             bottom: 30px; 
-            left: 0; 
-            width: 100%;
-            display: flex;
-            justify-content: center;
+            left: 50%; 
+            transform: translateX(-50%);
+            width: auto;
+            max-width: 95%;
             z-index: 10; 
             transition: opacity 0.3s ease, transform 0.3s ease; 
             opacity: 1; 
-            pointer-events: none; /* 让两侧空白处可穿透点击 */
+            pointer-events: none; 
         }
-        #ui.hidden { opacity: 0; transform: translateY(50px); pointer-events: none; }
+        #ui.hidden { opacity: 0; transform: translate(-50%, 50px); pointer-events: none; }
 
         .dock-panel { 
             background: rgba(12, 14, 18, 0.85);
             backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); 
             border: 1px solid rgba(255, 255, 255, 0.1); 
             padding: 14px 24px; border-radius: 24px; 
-            pointer-events: auto; /* 恢复面板的点击 */
+            pointer-events: auto; 
             display: flex; align-items: center; gap: 20px; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.7); 
-            width: auto; max-width: 95%;
         }
         
         .divider { width: 1px; height: 28px; background: rgba(255, 255, 255, 0.1); }
@@ -163,9 +161,38 @@
 
         #restore-ui-btn { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.6); color: white; padding: 10px 20px; border-radius: 25px; font-size: 13px; border: 1px solid rgba(255,255,255,0.3); pointer-events: auto; display: none; z-index: 200; cursor: pointer; backdrop-filter: blur(5px); }
 
-        /* --- 手机端专属优化 --- */
+        /* --- 手机端专属样式 --- */
+        /* 通过JS添加的类，确保脱离文档流 */
+        .mobile-fab-btn {
+            position: fixed !important;
+            top: 15px; right: 15px;
+            width: 44px; height: 44px; padding: 0;
+            border-radius: 50%;
+            z-index: 301 !important;
+            background: rgba(12, 14, 18, 0.6);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            display: flex; justify-content: center; align-items: center;
+            font-size: 0 !important;
+        }
+        .mobile-fab-btn::after { content: '⛶'; font-size: 20px; color: #fff; }
+
+        .mobile-fab-group {
+            position: fixed !important;
+            top: 70px; right: 15px; /* 全屏按钮下方 */
+            z-index: 300 !important;
+            background: transparent !important; border: none !important; padding: 0 !important;
+            display: flex; flex-direction: column !important;
+            gap: 0;
+            width: auto !important; height: auto !important;
+        }
+        /* 强制覆盖内部样式 */
+        .mobile-fab-group .trigger-group { flex-direction: column !important; gap: 15px !important; }
+        .mobile-fab-group .trigger-label { text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-weight: 800; color: #ddd; font-size: 10px; }
+
+        /* 手机端布局调整 */
         @media (max-width: 850px) {
-            #ui { bottom: 20px; width: 100%; } 
+            #ui { bottom: 20px; width: 100%; max-width: 100%; transform: translateX(-50%); left: 50%; } 
             
             .dock-panel { 
                 flex-direction: column; 
@@ -174,7 +201,6 @@
             }
             .divider { display: none; }
             
-            /* 1. 按钮组优化：横向滚动，去掉了颜色和全屏 */
             .btn-group { 
                 width: 100%; overflow-x: auto; 
                 justify-content: flex-start;
@@ -184,50 +210,12 @@
             .btn-group::-webkit-scrollbar { display: none; }
             
             .shape-btn { flex: 0 0 auto; padding: 8px 16px; font-size: 12px; }
-            
-            /* 2. 全屏按钮：绝对定位到右上角 */
-            #btn-immersive {
-                position: fixed !important; 
-                top: 15px; 
-                right: 15px;
-                width: 44px; height: 44px; padding: 0;
-                border-radius: 50%;
-                z-index: 300; 
-                background: rgba(12, 14, 18, 0.6);
-                backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-                border: 1px solid rgba(255,255,255,0.2);
-                display: flex; justify-content: center; align-items: center;
-                font-size: 0 !important; /* 隐藏文字 */
-            }
-            #btn-immersive::after { content: '⛶'; font-size: 20px; color: #fff; }
 
-            /* 3. 颜色触发器：移到全屏按钮下方，竖向排列 */
-            .color-dock-section { 
-                position: fixed !important; 
-                top: 70px; /* 全屏按钮下方 */
-                right: 15px;
-                background: transparent; border: none; padding: 0;
-                width: auto; height: auto;
-                z-index: 299;
-                flex-direction: column !important; 
-                gap: 0;
-            }
-            .trigger-group { flex-direction: column !important; gap: 15px; align-items: center; }
-            .trigger-label { text-shadow: 0 1px 3px rgba(0,0,0,0.8); font-weight: 800; color: #ddd; font-size: 10px; }
-            
-            /* 4. 颜色面板适配 */
-            #custom-color-picker { 
-                position: fixed;
-                bottom: auto; top: 70px; right: 60px; /* 在颜色按钮左侧弹出 */
-                left: auto; width: 220px; margin: 0;
-            }
-
-            /* 5. 滑块组 */
             .sliders-wrapper { flex-direction: row; width: 100%; justify-content: space-between; gap: 8px; flex-wrap: nowrap; }
             .slider-group { min-width: 0; flex: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 5px; }
             input[type="range"] { width: 100%; }
             
-            /* 6. 摄像头：左上角，避免遮挡 */
+            /* 摄像头位置 */
             #webcam-container { 
                 width: 100px; height: 133px; /* 3:4 比例 */
                 top: 80px; left: 15px; 
@@ -235,8 +223,12 @@
                 border: 1px solid rgba(255, 50, 50, 0.5);
             }
             
-            /* 画板适配 */
-            .canvas-wrapper { width: 95vw !important; height: 60vh !important; }
+            /* 颜色面板在手机端的位置 */
+            #custom-color-picker { 
+                position: fixed;
+                bottom: auto; top: 70px; right: 60px; /* 在颜色按钮左侧 */
+                left: auto; width: 200px; margin: 0;
+            }
         }
     </style>
 </head>
@@ -272,8 +264,8 @@
     </div>
 
     <div id="ui">
-        <div class="dock-panel">
-            <div class="btn-group">
+        <div class="dock-panel" id="main-dock">
+            <div class="btn-group" id="main-btns">
                 <button id="btn-galaxy" class="shape-btn active" onclick="setMode('galaxy')">星云</button>
                 <button id="btn-tesseract" class="shape-btn" onclick="setMode('tesseract')">四维</button>
                 <button id="btn-mobius" class="shape-btn" onclick="setMode('mobius')">莫比乌斯</button>
@@ -298,7 +290,7 @@
                 </div>
             </div>
             
-            <div class="color-dock-section">
+            <div class="color-dock-section" id="color-dock">
                 <div class="trigger-group">
                     <div class="trigger-item" id="item-core" onclick="openColorPicker('core')">
                         <div id="trigger-core" class="color-trigger" style="background: #ffaa33"></div>
@@ -330,7 +322,6 @@
                             <div><input type="number" id="rgb-b" class="rgb-input" min="0" max="255"><div class="rgb-label">B</div></div>
                         </div>
 
-                        <!-- 7个预设 -->
                         <div class="picker-presets">
                             <div class="preset-btn" style="background: #ffaa33" onclick="setSingleColor('#ffaa33')" title="金"></div>
                             <div class="preset-btn" style="background: #00ffcc" onclick="setSingleColor('#00ffcc')" title="青"></div>
@@ -359,8 +350,6 @@
 
         let scene, camera, renderer, composer, controls, particleSystem, material, bgParticles;
         const count = 50000;
-        const targetWeights = { galaxy: 1, tesseract: 0, mobius: 0, custom: 0 };
-        let targetChaos = 0;
         const mouse = new THREE.Vector2(-9999, -9999);
         
         window.isWebcamOn = false;
@@ -371,6 +360,41 @@
         let isDrawing = false, lastX = 0, lastY = 0;
         const paintCanvas = document.getElementById('paint-canvas');
         const ctx = paintCanvas.getContext('2d');
+
+        // --- DOM 操作辅助 ---
+        function checkMobileUI() {
+            const isMobile = window.innerWidth <= 850;
+            const btnImm = document.getElementById('btn-immersive');
+            const colorDock = document.getElementById('color-dock');
+            const mainBtns = document.getElementById('main-btns');
+            const mainDock = document.getElementById('main-dock');
+
+            if (isMobile) {
+                // 手机模式：将全屏按钮和颜色区移到 body 下，彻底脱离父级 transform 的影响
+                if (btnImm.parentElement !== document.body) {
+                    document.body.appendChild(btnImm);
+                    btnImm.classList.add('mobile-fab-btn');
+                }
+                if (colorDock.parentElement !== document.body) {
+                    document.body.appendChild(colorDock);
+                    colorDock.classList.add('mobile-fab-group');
+                }
+            } else {
+                // PC模式：放回原位
+                if (btnImm.parentElement === document.body) {
+                    mainBtns.insertBefore(btnImm, document.getElementById('btn-custom')); // 插在自定义按钮前
+                    btnImm.classList.remove('mobile-fab-btn');
+                    // 恢复文字
+                    btnImm.innerText = "⛶ 全屏";
+                }
+                if (colorDock.parentElement === document.body) {
+                    mainDock.appendChild(colorDock);
+                    colorDock.classList.remove('mobile-fab-group');
+                }
+                // PC端文字恢复
+                document.getElementById('btn-webcam').innerText = window.isWebcamOn ? "📷 运行中" : "📷 摄像头";
+            }
+        }
 
         // --- 工具函数 ---
         function bindEvent(id, event, handler) {
@@ -448,12 +472,6 @@
                 const hex = hslToHex(x * 360, 100, 50);
                 document.getElementById('picker-sl').style.backgroundColor = hex;
                 updateColor(hex);
-                const rgb = hexToRgb(hex);
-                if(rgb) {
-                    document.getElementById('rgb-r').value = rgb.r;
-                    document.getElementById('rgb-g').value = rgb.g;
-                    document.getElementById('rgb-b').value = rgb.b;
-                }
             };
             const stopDrag = () => {
                 window.removeEventListener('mousemove', handleDrag); window.removeEventListener('touchmove', handleDrag);
@@ -510,8 +528,9 @@
             document.addEventListener('touchmove', onTouchSimulate, { passive: false });
             document.addEventListener('click', (e) => {
                 const picker = document.getElementById('custom-color-picker');
-                const triggers = document.querySelector('.color-dock-section'); 
+                const triggers = document.getElementById('color-dock'); 
                 if (picker && picker.classList.contains('visible')) {
+                    // 如果picker在body下，需要单独判断包含关系
                     if(!picker.contains(e.target) && !triggers.contains(e.target)) {
                         closeColorPicker();
                     }
@@ -531,7 +550,7 @@
             createBackgroundParticles();
             
             setupUI();
-            checkMobileUI();
+            checkMobileUI(); // 初始化时执行布局检查
             initDraggable(document.getElementById('webcam-container'));
             
             document.getElementById('loading').style.display = 'none';
@@ -566,30 +585,15 @@
         function toggleImmersive() {
             const ui = document.getElementById('ui');
             const restoreBtn = document.getElementById('restore-ui-btn');
-            const isMobile = window.innerWidth <= 850;
             
-            // 手机端元素控制
-            const btnImm = document.getElementById('btn-immersive');
-            const colorDock = document.querySelector('.color-dock-section');
-
+            // 手机端因为按钮已经移出 ui，所以不需要特殊显隐逻辑，ui隐藏不影响全屏按钮
             if(ui.classList.contains('hidden')) {
-                // 恢复显示
                 ui.classList.remove('hidden');
                 restoreBtn.style.display = 'none';
-                if(isMobile) {
-                    btnImm.style.display = 'flex';
-                    colorDock.style.display = 'flex';
-                }
                 if(document.exitFullscreen) document.exitFullscreen().catch(()=>{});
             } else {
-                // 进入全屏（隐藏UI）
                 ui.classList.add('hidden');
                 restoreBtn.style.display = 'block';
-                if(isMobile) {
-                    // 手机端全屏时连右上角按钮也隐藏，只留恢复按钮
-                    btnImm.style.display = 'none';
-                    colorDock.style.display = 'none';
-                }
                 if(document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(()=>{});
             }
         }
@@ -608,7 +612,6 @@
                 if(material) material.uniforms.uSpread.value = 0;
                 if(controls) controls.autoRotate = true;
                 if (!isMobile) btn.innerText = "📷 摄像头";
-                checkMobileUI();
                 btn.style.boxShadow = ""; btn.style.color = ""; btn.style.borderColor = "";
                 updateStatus("摄像头已关闭", "#fff");
                 return;
@@ -618,12 +621,12 @@
             if(!isMobile) btn.innerText = "⏳ 请求中...";
             updateStatus("正在请求摄像头...", "#00eaff");
 
-            // --- 关键修复：手机端兼容性配置 ---
+            // 手机端完全移除 width/height 限制，让浏览器自动决定最佳分辨率
             const constraints = {
                 audio: false,
                 video: {
-                    facingMode: 'user', // 优先前置
-                    // 手机端不强制宽高，防止黑屏或报错
+                    facingMode: 'user', 
+                    // 仅PC端添加约束
                     ...(isMobile ? {} : { width: { ideal: 320 }, height: { ideal: 240 } })
                 }
             };
@@ -633,24 +636,24 @@
                 window.videoStream = stream;
                 const video = document.getElementById('webcam-video');
                 video.srcObject = stream;
+                
+                // 确保容器可见
                 document.getElementById('webcam-container').style.display = 'block';
                 
-                video.onloadedmetadata = async () => {
-                    try {
-                        await video.play();
-                        window.isWebcamOn = true;
-                        if(controls) controls.autoRotate = false;
-                        if(!isMobile) btn.innerText = "📷 运行中";
-                        initMediaPipe();
-                        updateStatus("摄像头已启动", "#00ffaa");
-                    } catch (playErr) {
-                        console.error("AutoPlay failed", playErr);
-                        updateStatus("请点击屏幕启动视频", "#ffaa00");
-                    }
+                // 强制播放逻辑
+                try {
+                    await video.play();
+                } catch(e) {
+                    console.warn("Auto-play failed, waiting for user interaction", e);
+                }
+
+                video.onloadedmetadata = () => {
+                    window.isWebcamOn = true;
+                    if(controls) controls.autoRotate = false;
+                    if(!isMobile) btn.innerText = "📷 运行中";
+                    initMediaPipe();
+                    updateStatus("摄像头已启动", "#00ffaa");
                 };
-                
-                // 双重保障：立即尝试播放
-                video.play().catch(e => console.warn("Initial play failed, waiting for metadata", e));
 
             } catch (err) {
                 console.error("Webcam Error:", err);
@@ -687,14 +690,12 @@
             let isDragging = false; let startX, startY, initialLeft, initialTop;
             const onStart = (e) => {
                 if(e.target.id === 'webcam-video' || e.target.id === 'output-canvas' || e.target.id === 'webcam-container') {
-                    // 防止在拖拽时触发点击
-                    // isDragging = true; 
                     const evt = e.touches ? e.touches[0] : e;
                     startX = evt.clientX; startY = evt.clientY;
                     const rect = el.getBoundingClientRect();
                     initialLeft = rect.left; initialTop = rect.top;
                     
-                    // 修正：拖拽开始时，先将定位转为 left/top 模式，避免布局冲突
+                    // 重置定位
                     el.style.bottom = 'auto'; el.style.right = 'auto';
                     el.style.left = initialLeft + 'px'; el.style.top = initialTop + 'px';
                     
@@ -711,15 +712,6 @@
             el.addEventListener('mousedown', onStart); el.addEventListener('touchstart', onStart, {passive: false});
             window.addEventListener('mousemove', onMove); window.addEventListener('touchmove', onMove, {passive: false});
             window.addEventListener('mouseup', onEnd); window.addEventListener('touchend', onEnd);
-        }
-
-        function checkMobileUI() {
-            const isMobile = window.innerWidth <= 850;
-            const btnWebcam = document.getElementById('btn-webcam');
-            if (!isMobile) {
-                // PC端恢复文字
-                btnWebcam.innerText = window.isWebcamOn ? "📷 运行中" : "📷 摄像头";
-            }
         }
 
         function initPaintCanvas() {
